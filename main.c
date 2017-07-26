@@ -108,9 +108,7 @@ inline int generate_bond(lattice* data){
 int _set_matrix(lattice* data, int a, int b, int now, long offset_x, long offset_y, float value, int flag){
     if(now==data->point){
         add_element(data->matrix,offset_x,offset_y,-value);
-        return 0;
-    }
-    if(now==b){
+    }else if(now==b){
         switch(flag){
             case(0):
                 _set_matrix(data, a, b, now+1, offset_x*2+0, offset_y*2+0, +0.25, 0);
