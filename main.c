@@ -1,8 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <memory.h>
 #include <time.h>
 #include <math.h>
+
+typedef struct matrix_element{
+    long x;
+    long y;
+    float value;
+    struct matrix_element* left;
+    struct matrix_element* right;
+} matrix_element;
 
 typedef struct lattice{
     int n;
@@ -11,11 +18,49 @@ typedef struct lattice{
     int bonds_size;
     int (*bonds)[2];
     long matrix_size;
-    float *matrix; // 1-H
+    matrix_element* matrix;
     float *vector;
     float ans;
     int step;
 } lattice;
+
+int add_element(matrix_element* matrix, long x, long y, float value){
+    if((matrix->x==x)&&(matrix->y==y)){
+        matrix->value += value;
+    }else if((matrix->x<x)||((matrix->x==x)&&(matrix->y<y))){
+        if(matrix->left){
+            add_element(matrix->left,x,y,value);
+        }else{
+            matrix->left = (matrix_element*)malloc(sizeof(matrix_element));
+            matrix->left->x = x;
+            matrix->left->y = y;
+            matrix->left->value = value;
+            matrix->left->left=NULL;
+            matrix->left->right=NULL;
+
+        }
+    }else{
+        if(matrix->right){
+            add_element(matrix->right,x,y,value);
+        }else{
+            matrix->right = (matrix_element*)malloc(sizeof(matrix_element));
+            matrix->right->x = x;
+            matrix->right->y = y;
+            matrix->right->value = value;
+            matrix->right->left=NULL;
+            matrix->right->right=NULL;
+
+        }
+    }
+    return 0;
+}
+
+int traversal(matrix_element* matrix, float* src, float* dst){
+    dst[matrix->y] += matrix->value*src[matrix->x];
+    if(matrix->left)traversal(matrix->left,src,dst);
+    if(matrix->right)traversal(matrix->right,src,dst);
+    return 0;
+}
 
 int read_lattice(lattice* data, int argc, char** argv){
     data->n = atoi(argv[1]);
@@ -27,18 +72,14 @@ int read_lattice(lattice* data, int argc, char** argv){
     data->bonds = (int (*)[2])malloc(sizeof(int)*2*(data->n*(data->m-1)+data->m*(data->n-1)));
     data->vector = (float*)malloc(sizeof(float)*data->matrix_size);
     srand(time(NULL));
-    for(int i=0;i<data->matrix_size;i++)data->vector[i]=((float)rand())/RAND_MAX;
-    data->matrix = (float*)malloc(sizeof(float)*data->matrix_size*data->matrix_size);
-    memset(data->matrix,0,sizeof(float)*data->matrix_size*data->matrix_size);
-    for(long i=0;i<data->matrix_size;i++)data->matrix[(data->matrix_size+1)*i]=1;
-#ifdef debug1
-    for(int i=0;i<data->matrix_size;i++){
-        for(int j=0;j<data->matrix_size;j++){
-            printf("%.2f ",data->matrix[i*data->matrix_size+j]);
-        }
-        printf("\n");
-    }
-#endif
+    for(long i=0;i<data->matrix_size;i++)data->vector[i]=((float)rand())/RAND_MAX;
+    data->matrix = (matrix_element*)malloc(sizeof(matrix_element));
+    data->matrix->x = 0;
+    data->matrix->y = 0;
+    data->matrix->value = 0;
+    data->matrix->left=NULL;
+    data->matrix->right=NULL;
+    for(long i=0;i<data->matrix_size;i++)add_element(data->matrix,i,i,1);
     return 0;
 }
 
@@ -55,16 +96,12 @@ int generate_bond(lattice* data){
             data->bonds[data->m*(data->n-1)+i*(data->m-1)+j][1]=i*data->m+j+1;
         }
     }
-#ifdef debug0
-    for(int i=0;i<(data->n*(data->m-1)+(data->m*(data->n-1)));i++)
-        printf("%d\t%d\n",data->bonds[i][0],data->bonds[i][1]);
-#endif
     return 0;
 }
 
 int _set_matrix(lattice* data, int a, int b, int now, long offset_x, long offset_y, float value, int flag){
     if(now==data->point){
-        data->matrix[offset_x*data->matrix_size+offset_y] -= value;
+        add_element(data->matrix,offset_x,offset_y,-value);
         return 0;
     }
     if(now==b){
@@ -100,45 +137,26 @@ int set_matrix(lattice* data){
     for(int bond=0;bond<data->bonds_size;bond++){
         _set_matrix(data,data->bonds[bond][0],data->bonds[bond][1],0,0,0,0,0);
     }
-#ifdef debug2
-    for(int i=0;i<data->matrix_size;i++){
-        for(int j=0;j<data->matrix_size;j++){
-            if(data->matrix[i*data->matrix_size+j]==0.)
-                printf("      ");
-            else
-                printf("%5.2f ",data->matrix[i*data->matrix_size+j]);
-        }
-        printf("\n");
-    }
-#endif
     return 0;
 }
 
 int _update_vector(lattice* data){
     float* temp = (float*)malloc(sizeof(float)*data->matrix_size);
-    for(int i=0;i<data->matrix_size;i++){
+    for(long i=0;i<data->matrix_size;i++){
         temp[i]=data->vector[i];
         data->vector[i]=0;
     }
-    for(int i=0;i<data->matrix_size;i++){
-        for(int j=0;j<data->matrix_size;j++){
-            data->vector[i] += data->matrix[data->matrix_size*i+j]*temp[j];
-        }
-    }
+    traversal(data->matrix,temp,data->vector);
     free(temp);
     return 0;
 }
 
 int find_max(lattice *data){
-#ifdef debug3
-    for(int i=0;i<data->matrix_size;i++)printf("%5.2f ",data->vector[i]);
-    printf("\n");
-#endif
     data->ans = 0;
     int flag = 1;
     for(int t=0;(t<10)||(flag);t++){
         float temp=0;
-        for(int i=0;i<data->matrix_size;i++){
+        for(long i=0;i<data->matrix_size;i++){
             temp+=data->vector[i]*data->vector[i];
         }
         temp = sqrt(temp);
@@ -148,7 +166,7 @@ int find_max(lattice *data){
             data->step = t;
         }
         data->ans = temp;
-        for(int i=0;i<data->matrix_size;i++){
+        for(long i=0;i<data->matrix_size;i++){
             data->vector[i] /= data->ans;
         }
         _update_vector(data);
