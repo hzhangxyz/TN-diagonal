@@ -4,9 +4,9 @@
 #include <math.h>
 
 typedef struct matrix_element{
-    long   x;
-    long   y;
-    float  value;
+    long                   x;
+    long                   y;
+    float                  value;
     struct matrix_element* left;
     struct matrix_element* right;
 } matrix_element;
@@ -113,27 +113,27 @@ int _set_matrix(lattice* data, int a, int b, int now, long offset_x, long offset
     if(now==b){
         switch(flag){
             case(0):
-                _set_matrix(data, a, b, now+1, offset_x*2  , offset_y*2,   +0.25, 0);
+                _set_matrix(data, a, b, now+1, offset_x*2+0, offset_y*2+0, +0.25, 0);
                 _set_matrix(data, a, b, now+1, offset_x*2+1, offset_y*2+1, -0.25, 0);
                 break;
             case(1):
-                _set_matrix(data, a, b, now+1, offset_x*2+1, offset_y*2,   0.5,   0);
+                _set_matrix(data, a, b, now+1, offset_x*2+1, offset_y*2+0, +0.50, 0);
                 break;
             case(2):
-                _set_matrix(data, a, b, now+1, offset_x*2,   offset_y*2+1, 0.5,   0);
+                _set_matrix(data, a, b, now+1, offset_x*2+0, offset_y*2+1, +0.50, 0);
                 break;
             case(3):
-                _set_matrix(data, a, b, now+1, offset_x*2  , offset_y*2,   -0.25, 0);
+                _set_matrix(data, a, b, now+1, offset_x*2+0, offset_y*2+0, -0.25, 0);
                 _set_matrix(data, a, b, now+1, offset_x*2+1, offset_y*2+1, +0.25, 0);
                 break;
         }
     }else if(now==a){
-        _set_matrix(data, a, b, now+1, offset_x*2  , offset_y*2,   value, 0);
-        _set_matrix(data, a, b, now+1, offset_x*2  , offset_y*2+1, value, 1);
-        _set_matrix(data, a, b, now+1, offset_x*2+1, offset_y*2,   value, 2);
+        _set_matrix(data, a, b, now+1, offset_x*2+0, offset_y*2+0, value, 0);
+        _set_matrix(data, a, b, now+1, offset_x*2+0, offset_y*2+1, value, 1);
+        _set_matrix(data, a, b, now+1, offset_x*2+1, offset_y*2+0, value, 2);
         _set_matrix(data, a, b, now+1, offset_x*2+1, offset_y*2+1, value, 3);
     }else{
-        _set_matrix(data, a, b, now+1, offset_x*2,   offset_y*2,   value, flag);
+        _set_matrix(data, a, b, now+1, offset_x*2+0, offset_y*2+0, value, flag);
         _set_matrix(data, a, b, now+1, offset_x*2+1, offset_y*2+1, value, flag);
     }
     return 0;
