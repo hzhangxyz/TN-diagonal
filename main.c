@@ -147,7 +147,7 @@ inline int _update_vector(lattice* data){
     return 0;
 }
 
-#define MIN 0.00000001
+#define MIN 1e-8
 inline int find_max(lattice *data){
     data->ans = 0;
     for(int t=0;;t++){
