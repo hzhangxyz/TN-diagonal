@@ -24,6 +24,16 @@ typedef struct lattice{
     int step;
 } lattice;
 
+inline int init_element(matrix_element** matrix, long x, long y, float value){
+    *matrix=(matrix_element*)malloc(sizeof(matrix_element));
+    (*matrix)->x = x;
+    (*matrix)->y = y;
+    (*matrix)->value = value;
+    (*matrix)->left=NULL;
+    (*matrix)->right=NULL;
+    return 0;
+}
+
 int add_element(matrix_element* matrix, long x, long y, float value){
     if((matrix->x==x)&&(matrix->y==y)){
         matrix->value += value;
@@ -31,25 +41,13 @@ int add_element(matrix_element* matrix, long x, long y, float value){
         if(matrix->left){
             add_element(matrix->left,x,y,value);
         }else{
-            matrix->left = (matrix_element*)malloc(sizeof(matrix_element));
-            matrix->left->x = x;
-            matrix->left->y = y;
-            matrix->left->value = value;
-            matrix->left->left=NULL;
-            matrix->left->right=NULL;
-
+            init_element(&matrix->left,x,y,value);
         }
     }else{
         if(matrix->right){
             add_element(matrix->right,x,y,value);
         }else{
-            matrix->right = (matrix_element*)malloc(sizeof(matrix_element));
-            matrix->right->x = x;
-            matrix->right->y = y;
-            matrix->right->value = value;
-            matrix->right->left=NULL;
-            matrix->right->right=NULL;
-
+            init_element(&matrix->right,x,y,value);
         }
     }
     return 0;
@@ -62,7 +60,7 @@ int traversal(matrix_element* matrix, float* src, float* dst){
     return 0;
 }
 
-int read_lattice(lattice* data, int argc, char** argv){
+inline int read_lattice(lattice* data, int argc, char** argv){
     data->n = atoi(argv[1]);
     data->m = atoi(argv[2]);
     data->point = data->n*data->m;
@@ -73,17 +71,12 @@ int read_lattice(lattice* data, int argc, char** argv){
     data->vector = (float*)malloc(sizeof(float)*data->matrix_size);
     srand(time(NULL));
     for(long i=0;i<data->matrix_size;i++)data->vector[i]=((float)rand())/RAND_MAX;
-    data->matrix = (matrix_element*)malloc(sizeof(matrix_element));
-    data->matrix->x = 0;
-    data->matrix->y = 0;
-    data->matrix->value = 0;
-    data->matrix->left=NULL;
-    data->matrix->right=NULL;
+    init_element(&data->matrix,0,0,0);
     for(long i=0;i<data->matrix_size;i++)add_element(data->matrix,i,i,1);
     return 0;
 }
 
-int generate_bond(lattice* data){
+inline int generate_bond(lattice* data){
     for(int i=0;i<data->n-1;i++){
         for(int j=0;j<data->m;j++){
             data->bonds[i*data->m+j][0]=i*data->m+j;
@@ -133,14 +126,14 @@ int _set_matrix(lattice* data, int a, int b, int now, long offset_x, long offset
     return 0;
 }
 
-int set_matrix(lattice* data){
+inline int set_matrix(lattice* data){
     for(int bond=0;bond<data->bonds_size;bond++){
         _set_matrix(data,data->bonds[bond][0],data->bonds[bond][1],0,0,0,0,0);
     }
     return 0;
 }
 
-int _update_vector(lattice* data){
+inline int _update_vector(lattice* data){
     float* temp = (float*)malloc(sizeof(float)*data->matrix_size);
     for(long i=0;i<data->matrix_size;i++){
         temp[i]=data->vector[i];
@@ -151,19 +144,18 @@ int _update_vector(lattice* data){
     return 0;
 }
 
-int find_max(lattice *data){
+#define MIN 0.00000001
+inline int find_max(lattice *data){
     data->ans = 0;
-    int flag = 1;
-    for(int t=0;(t<10)||(flag);t++){
+    for(int t=0;;t++){
         float temp=0;
         for(long i=0;i<data->matrix_size;i++){
             temp+=data->vector[i]*data->vector[i];
         }
         temp = sqrt(temp);
-#define MIN 0.00000001
-        if((data->ans-temp<MIN)&&(temp-data->ans<MIN)){
-            flag=0;
+        if((data->ans-temp<MIN)&&(temp-data->ans<MIN)&&(t>10)){
             data->step = t;
+            return 0;
         }
         data->ans = temp;
         for(long i=0;i<data->matrix_size;i++){
@@ -171,11 +163,12 @@ int find_max(lattice *data){
         }
         _update_vector(data);
     }
-    return 0;
 }
 
-int output(lattice *data){
-    printf("Size:\t%d\t%d\nStep:\t%d\nEnergy:\t%.6f\n\n",data->n,data->m,data->step,(1-data->ans)/(data->n*data->m));
+inline int output(lattice *data){
+    printf("Size:\t%d\t%d\nStep:\t%d\nEnergy:\t%.6f\nValue:\n",data->n,data->m,data->step,(1-data->ans)/(data->n*data->m));
+    for(long i=0;i<data->matrix_size;i++)printf("%.2f ",data->vector[i]);
+    printf("\n");
     free(data->bonds);
     free(data->vector);
     free(data->matrix);
