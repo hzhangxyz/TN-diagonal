@@ -22,6 +22,8 @@ typedef struct lattice{
     float *vector;
     float ans;
     int step;
+    double time_start;
+    double time_end;
 } lattice;
 
 inline int init_element(matrix_element** matrix, long x, long y, float value){
@@ -61,6 +63,7 @@ int traversal(matrix_element* matrix, float* src, float* dst){
 }
 
 inline int read_lattice(lattice* data, int argc, char** argv){
+    data->time_start = (double)clock() / CLOCKS_PER_SEC;
     data->n = atoi(argv[1]);
     data->m = atoi(argv[2]);
     data->point = data->n*data->m;
@@ -166,9 +169,10 @@ inline int find_max(lattice *data){
 }
 
 inline int output(lattice *data){
-    printf("Size:\t%d\t%d\nStep:\t%d\nEnergy:\t%.6f\nValue:\n",data->n,data->m,data->step,(1-data->ans)/(data->n*data->m));
+    data->time_end = (double)clock() / CLOCKS_PER_SEC;
+    printf("Size:\t%d\t%d\nTime:\t%.6f\nStep:\t%d\nEnergy:\t%.6f\nValue:\n",data->n,data->m,data->time_end-data->time_start,data->step,(1-data->ans)/(data->n*data->m));
     for(long i=0;i<data->matrix_size;i++)printf("%.2f ",data->vector[i]);
-    printf("\n");
+    printf("\n\n");
     free(data->bonds);
     free(data->vector);
     free(data->matrix);
